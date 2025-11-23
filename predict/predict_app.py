@@ -1,39 +1,53 @@
+import sys
+import os
 from pyspark.sql import SparkSession
 from pyspark.ml import PipelineModel
 from pyspark.ml.evaluation import MulticlassClassificationEvaluator
-import sys
+
 
 def main():
-    if len(sys.argv) != 3:
-        print("Usage: predict_app.py <test_csv> <model_path>")
+    if len(sys.argv) != 2:
+        print("Usage: python predict_app.py <test_csv_path>")
         sys.exit(1)
 
-    test_csv = sys.argv[1]
-    model_path = sys.argv[2]
+    test_path = sys.argv[1]
 
-    spark = SparkSession.builder.appName("WineQualityPrediction").getOrCreate()
+    # By default look for trained model in ./model
+    model_path = os.environ.get("MODEL_PATH", "./model")
 
-    # Load CSV
-    test_df = spark.read.csv(test_csv, header=True, sep=';', inferSchema=True)
+    spark = (
+        SparkSession.builder
+        .appName("WineQualityPrediction")
+        .getOrCreate()
+    )
 
-    # Load model
+    # ---------- Load test data ----------
+    test_df = (
+        spark.read.csv(
+            test_path,
+            header=True,
+            sep=";",
+            inferSchema=True
+        )
+    )
+
+    # ---------- Load trained pipeline model ----------
     model = PipelineModel.load(model_path)
 
-    # Predict
+    # ---------- Predict ----------
     preds = model.transform(test_df)
 
     evaluator = MulticlassClassificationEvaluator(
-        labelCol="label",
+        labelCol="label",        # created by StringIndexer inside the pipeline
         predictionCol="prediction",
         metricName="f1"
     )
 
     f1 = evaluator.evaluate(preds)
-    print(f"F1 Score on Test Data: {f1}")
+    print(f"Test F1 score: {f1}")
 
     spark.stop()
 
 
 if __name__ == "__main__":
     main()
-
