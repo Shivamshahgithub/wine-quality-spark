@@ -34,18 +34,12 @@ def main(argv):
 
     # ---- Load data ----
     print("[INFO] Reading training CSV...")
-    train_df = spark.read.csv(train_path, header=True, sep=";", inferSchema=True)
-    
-    print("[DEBUG] Training columns:", train_df.columns)
-    train_df.printSchema()
-    
+    train_df = spark.read.csv(train_path, header=True, inferSchema=True)
+      
     print("[INFO] Reading validation CSV...")
-    val_df = spark.read.csv(val_path, header=True, sep=";", inferSchema=True)
+    val_df = spark.read.csv(val_path, header=True, inferSchema=True)
     
-    print("[DEBUG] Validation columns:", val_df.columns)
-    val_df.printSchema()
-
-
+    
     # label is the "quality" column
     label_col = "quality"
     feature_cols = [c for c in train_df.columns if c != label_col]
