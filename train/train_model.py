@@ -32,21 +32,35 @@ def main(argv):
 
     spark = get_spark()
 
-    # ---- Load data ----
+    # ------------ LOAD DATA (normal comma‑CSV) ------------
     print("[INFO] Reading training CSV...")
     train_df = spark.read.csv(train_path, header=True, inferSchema=True)
-      
+
     print("[INFO] Reading validation CSV...")
     val_df = spark.read.csv(val_path, header=True, inferSchema=True)
-    
-    
-    # label is the "quality" column
-    label_col = "quality"
-    feature_cols = [c for c in train_df.columns if c != label_col]
 
-    # ---- Build pipeline ----
-    indexer = StringIndexer(inputCol=label_col, outputCol="label", handleInvalid="keep")
-    assembler = VectorAssembler(inputCols=feature_cols, outputCol="features")
+    print("[DEBUG] Training columns:", train_df.columns)
+    train_df.printSchema()
+
+    # ------------ LABEL + FEATURES ------------
+    # Use the LAST column as the label (should be quality)
+    label_col = train_df.columns[-1]
+    feature_cols = train_df.columns[:-1]
+
+    print("[INFO] Using label column:", repr(label_col))
+    print("[INFO] Number of feature columns:", len(feature_cols))
+
+    indexer = StringIndexer(
+        inputCol=label_col,
+        outputCol="label",
+        handleInvalid="keep",
+    )
+
+    assembler = VectorAssembler(
+        inputCols=feature_cols,
+        outputCol="features",
+    )
+
     rf = RandomForestClassifier(
         labelCol="label",
         featuresCol="features",
@@ -57,11 +71,11 @@ def main(argv):
 
     pipeline = Pipeline(stages=[indexer, assembler, rf])
 
-    # ---- Train ----
+    # ------------ TRAIN ------------
     print("[INFO] Fitting model (this can take ~30–60 seconds on first run)...")
     model = pipeline.fit(train_df)
 
-    # ---- Evaluate ----
+    # ------------ EVALUATE ------------
     print("[INFO] Evaluating on validation set...")
     preds = model.transform(val_df)
 
@@ -73,11 +87,10 @@ def main(argv):
     f1 = evaluator.evaluate(preds)
     print(f"[RESULT] Validation F1 score = {f1:.4f}")
 
-    # ---- Save model ----
+    # ------------ SAVE MODEL ------------
     print(f"[INFO] Saving model into directory: {model_dir}")
     os.makedirs(model_dir, exist_ok=True)
     model.write().overwrite().save(model_dir)
-
     abs_path = os.path.abspath(model_dir)
     print(f"[INFO] Model saved at: {abs_path}")
 
