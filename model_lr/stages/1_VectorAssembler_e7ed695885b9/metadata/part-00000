@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.VectorAssembler","timestamp":1765049292877,"sparkVersion":"3.5.6-amzn-1","uid":"VectorAssembler_e7ed695885b9","paramMap":{"outputCol":"features","inputCols":["f0","f1","f2","f3","f4","f5","f6","f7","f8","f9","f10"]},"defaultParamMap":{"outputCol":"VectorAssembler_e7ed695885b9__output","handleInvalid":"error"}}
